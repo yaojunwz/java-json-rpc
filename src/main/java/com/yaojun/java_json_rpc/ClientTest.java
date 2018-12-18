@@ -15,7 +15,11 @@ public class ClientTest {
     public static void main(String[] args) {
         try {
             // setup  ClientProxy
+<<<<<<< HEAD
             ClientProxy<TestHandler> clientProxy = new ClientProxy(new ProxyConf("http://your_host/json/","app"));
+=======
+            ClientProxy<TestHandler> clientProxy = new ClientProxy(new ProxyConf("http://your_host/json/"));
+>>>>>>> b08e1ab528b509d1a9e581f823320f199594f768
 
             // get handler
             TestHandler handler = clientProxy.createHandler(new TestHandlerImp());
