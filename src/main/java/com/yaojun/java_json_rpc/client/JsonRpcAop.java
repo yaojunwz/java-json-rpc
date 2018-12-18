@@ -45,15 +45,14 @@ public class JsonRpcAop implements InvocationHandler {
         } else {
             throw new Exception("method format is valid");
         }
-        if(!"".equals(config.getNamespace()))
-            methodName=config.getNamespace()+"."+methodName;
+        if (!"".equals(config.getNamespace()))
+            methodName = config.getNamespace() + "." + methodName;
         String methodParms = "";
-        for (int i = 0; i < args.length - 1; i++){
-            System.out.println(methodTypeParms[i]);
+        for (int i = 0; i < args.length - 1; i++) {
             if ("String".equals(methodTypeParms[i]))
-                methodParms = methodParms + "\"" + args[i].toString() + "\",";
+                methodParms = methodParms+String.format("\"%s\",", args[i].toString());
             else
-                methodParms = methodParms + args[i].toString() + ",";
+            methodParms = methodParms + String.format("%s,", args[i].toString());
         }
         methodParms = methodParms.substring(0, methodParms.length() - 1);
         return String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": 7}", methodName, methodParms);
@@ -61,14 +60,15 @@ public class JsonRpcAop implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        System.out.println(args.length);
+        //System.out.println(args.length);
         JsonRpcMethod annotation = method.getDeclaredAnnotationsByType(JsonRpcMethod.class)[0];
         String bodyString = JsonRpcString2JsonString(annotation.Method(), args);
-        System.out.println(bodyString);
+        //System.out.println(bodyString);
         Response response = httpRequest(bodyString);
-        System.out.println(response.body().string());
+        String res = response.body().string();
+        //System.out.println(res);
+        args[args.length-1]=res;
         Object ret = method.invoke(obj, args);
-        System.out.println("后置代理");
         return ret;
     }
 }
