@@ -1,15 +1,13 @@
 package com.yaojun.java_json_rpc.client;
 
-import com.sun.deploy.net.HttpRequest;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import com.yaojun.java_json_rpc.json_rpc.JsonRpcMethod;
+import okhttp3.*;
 
-import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.regex.*;
+
 
 /**
  * @Author: yaojun
@@ -26,21 +24,49 @@ public class JsonRpcAop implements InvocationHandler {
         this.config = _config;
     }
 
-    private Response httpRequest() throws java.io.IOException {
-        Request request = new Request.Builder().url(this.config.getUrl()).build();
+    private Response httpRequest(String json) throws java.io.IOException {
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), json);
+        Request request = new Request.Builder().url(this.config.getUrl()).post(body).build();
         Response response = okHttpClient.newCall(request).execute();
         return response;
     }
 
+
+    private String JsonRpcString2JsonString(String jsonRpcString, Object[] args) throws Exception {
+        String pattern = "(.*)\\((.*)\\)(.*)";
+        Pattern r = Pattern.compile(pattern);
+        Matcher m = r.matcher(jsonRpcString);
+        String methodName, methodReturnValue;
+        String[] methodTypeParms;
+        if (m.find()) {
+            methodName = m.group(1);
+            methodTypeParms = m.group(2).split(",");
+            methodReturnValue = m.group(3);
+        } else {
+            throw new Exception("method format is valid");
+        }
+        if(!"".equals(config.getNamespace()))
+            methodName=config.getNamespace()+"."+methodName;
+        String methodParms = "";
+        for (int i = 0; i < args.length - 1; i++){
+            System.out.println(methodTypeParms[i]);
+            if ("String".equals(methodTypeParms[i]))
+                methodParms = methodParms + "\"" + args[i].toString() + "\",";
+            else
+                methodParms = methodParms + args[i].toString() + ",";
+        }
+        methodParms = methodParms.substring(0, methodParms.length() - 1);
+        return String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": 7}", methodName, methodParms);
+    }
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        System.out.println(method);
-        Annotation[] annotations =method.getDeclaredAnnotations();
-        System.out.println(annotations.length);
-
-//        Response response = httpRequest();
-//        System.out.println(response.body().string());
-
+        System.out.println(args.length);
+        JsonRpcMethod annotation = method.getDeclaredAnnotationsByType(JsonRpcMethod.class)[0];
+        String bodyString = JsonRpcString2JsonString(annotation.Method(), args);
+        System.out.println(bodyString);
+        Response response = httpRequest(bodyString);
+        System.out.println(response.body().string());
         Object ret = method.invoke(obj, args);
         System.out.println("后置代理");
         return ret;

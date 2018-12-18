@@ -15,7 +15,7 @@ public class ClientTest {
     public static void main(String[] args) {
         try {
             // setup  ClientProxy
-            ClientProxy<TestHandler> clientProxy = new ClientProxy(new ProxyConf("http://apiserver.smartgreenai.com/json/"));
+            ClientProxy<TestHandler> clientProxy = new ClientProxy(new ProxyConf("http://your_host/json/","app"));
 
             // get handler
             TestHandler handler = clientProxy.createHandler(new TestHandlerImp());
