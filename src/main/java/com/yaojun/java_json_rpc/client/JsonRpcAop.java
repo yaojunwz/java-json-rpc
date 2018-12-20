@@ -1,11 +1,12 @@
 package com.yaojun.java_json_rpc.client;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.yaojun.java_json_rpc.json_rpc.JsonRpcMethod;
 import okhttp3.*;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.regex.*;
 
 
@@ -16,7 +17,7 @@ import java.util.regex.*;
 public class JsonRpcAop implements InvocationHandler {
     private Object obj;
     private ProxyConf config;
-
+    private JsonParser jsonParser = new JsonParser();
     private OkHttpClient okHttpClient = new OkHttpClient();
 
     public JsonRpcAop(Object obj, ProxyConf _config) {
@@ -50,9 +51,9 @@ public class JsonRpcAop implements InvocationHandler {
         String methodParms = "";
         for (int i = 0; i < args.length - 1; i++) {
             if ("String".equals(methodTypeParms[i]))
-                methodParms = methodParms+String.format("\"%s\",", args[i].toString());
+                methodParms = methodParms + String.format("\"%s\",", args[i].toString());
             else
-            methodParms = methodParms + String.format("%s,", args[i].toString());
+                methodParms = methodParms + String.format("%s,", args[i].toString());
         }
         methodParms = methodParms.substring(0, methodParms.length() - 1);
         return String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": 7}", methodName, methodParms);
@@ -66,8 +67,11 @@ public class JsonRpcAop implements InvocationHandler {
         //System.out.println(bodyString);
         Response response = httpRequest(bodyString);
         String res = response.body().string();
+        JsonObject json = (JsonObject) jsonParser.parse(res);
         //System.out.println(res);
-        args[args.length-1]=res;
+        if (json.has("error"))
+            throw new JsonRpcException(json.get("error").toString());
+        args[args.length - 1] = json.get("result");
         Object ret = method.invoke(obj, args);
         return ret;
     }
