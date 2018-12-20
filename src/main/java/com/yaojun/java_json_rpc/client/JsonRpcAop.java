@@ -1,10 +1,10 @@
 package com.yaojun.java_json_rpc.client;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.yaojun.java_json_rpc.json_rpc.JsonRpcMethod;
 import okhttp3.*;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.regex.*;
@@ -19,6 +19,12 @@ public class JsonRpcAop implements InvocationHandler {
     private ProxyConf config;
     private JsonParser jsonParser = new JsonParser();
     private OkHttpClient okHttpClient = new OkHttpClient();
+    private Gson gs = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    private static long id = 0;
+
+    private static synchronized long getId() {
+        return JsonRpcAop.id++;
+    }
 
     public JsonRpcAop(Object obj, ProxyConf _config) {
         this.obj = obj;
@@ -30,6 +36,27 @@ public class JsonRpcAop implements InvocationHandler {
         Request request = new Request.Builder().url(this.config.getUrl()).post(body).build();
         Response response = okHttpClient.newCall(request).execute();
         return response;
+    }
+
+    private void asynHttpRequest(String json, JsonRpcListener listener) throws java.io.IOException {
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), json);
+        Request request = new Request.Builder().url(this.config.getUrl()).post(body).build();
+        Call call = okHttpClient.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.println(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                JsonObject json = (JsonObject) jsonParser.parse(response.body().string());
+                if (json.has("error"))
+                    listener.OnCallBack(json.get("id").getAsLong(), json.get("error"), json.get("result"));
+                else
+                    listener.OnCallBack(json.get("id").getAsLong(), null, json.get("result"));
+            }
+        });
     }
 
 
@@ -48,31 +75,51 @@ public class JsonRpcAop implements InvocationHandler {
         }
         if (!"".equals(config.getNamespace()))
             methodName = config.getNamespace() + "." + methodName;
-        String methodParms = "";
+        JsonArray params = new JsonArray();
         for (int i = 0; i < args.length - 1; i++) {
             if ("String".equals(methodTypeParms[i]))
-                methodParms = methodParms + String.format("\"%s\",", args[i].toString());
-            else
-                methodParms = methodParms + String.format("%s,", args[i].toString());
+                params.add((String) args[i]);
+            else if ("Float".equals(methodTypeParms[i]))
+                params.add((float) args[i]);
+            else if ("Dict".equals(methodTypeParms[i]))
+                params.add((JsonObject) args[i]);
         }
-        methodParms = methodParms.substring(0, methodParms.length() - 1);
-        return String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": 7}", methodName, methodParms);
+        JsonObject jsonRpcMethod = new JsonObject();
+        jsonRpcMethod.addProperty("method", methodName);
+        jsonRpcMethod.addProperty("jsonrpc", "2.0");
+        jsonRpcMethod.add("params", params);
+        jsonRpcMethod.addProperty("id", JsonRpcAop.getId());
+        return jsonRpcMethod.toString();
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        //System.out.println(args.length);
         JsonRpcMethod annotation = method.getDeclaredAnnotationsByType(JsonRpcMethod.class)[0];
         String bodyString = JsonRpcString2JsonString(annotation.Method(), args);
-        //System.out.println(bodyString);
+        System.out.println(bodyString);
+        if (ProxyConf.Mode.sync == this.config.getMode()) {
+            args[args.length - 1] = syncInvoke(bodyString);
+            Object ret = method.invoke(obj, args);
+            return ret;
+        } else {
+            asynInvoke(bodyString, args);
+        }
+        return null;
+    }
+
+    public Object syncInvoke(String bodyString) throws Throwable {
         Response response = httpRequest(bodyString);
         String res = response.body().string();
         JsonObject json = (JsonObject) jsonParser.parse(res);
         //System.out.println(res);
         if (json.has("error"))
-            throw new JsonRpcException(json.get("error").toString());
-        args[args.length - 1] = json.get("result");
-        Object ret = method.invoke(obj, args);
-        return ret;
+            throw new JsonRpcException(gs.toJson(json.get("error")));
+        return json.get("result");
+    }
+
+
+    public Object asynInvoke(String bodyString, Object[] args) throws Throwable {
+        asynHttpRequest(bodyString, (JsonRpcListener) args[args.length - 1]);
+        return null;
     }
 }

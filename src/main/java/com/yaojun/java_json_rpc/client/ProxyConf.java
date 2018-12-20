@@ -6,6 +6,10 @@ package com.yaojun.java_json_rpc.client;
  */
 public class ProxyConf {
 
+    public enum Mode {
+        sync,
+        asyn,
+    }
 
     public String getNamespace() {
         return namespace;
@@ -28,13 +32,26 @@ public class ProxyConf {
 
     private String url;
 
+    public ProxyConf.Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(ProxyConf.Mode mode) {
+        this.mode = mode;
+    }
+
+    private Mode mode;
+
+
     public ProxyConf(String url) {
         setNamespace("");
         setUrl(url);
+        setMode(Mode.sync);
     }
 
-    public ProxyConf(String url, String namespace) {
+    public ProxyConf(String url, String namespace,Mode mode) {
         setNamespace(namespace);
         setUrl(url);
+        setMode(mode);
     }
 }

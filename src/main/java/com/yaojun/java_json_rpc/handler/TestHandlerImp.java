@@ -1,4 +1,4 @@
-package com.yaojun.java_json_rpc.client.handler;
+package com.yaojun.java_json_rpc.handler;
 
 /**
  * @Author: yaojun

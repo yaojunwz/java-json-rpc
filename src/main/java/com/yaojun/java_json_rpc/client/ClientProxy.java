@@ -1,9 +1,5 @@
 package com.yaojun.java_json_rpc.client;
 
-import com.yaojun.java_json_rpc.client.handler.TestHandler;
-import com.yaojun.java_json_rpc.client.handler.TestHandlerImp;
-
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 
 /**
