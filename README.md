@@ -8,7 +8,9 @@ json-rpc 2.0协议实现 (基于http请求)
 2 将后端 jsonRpc 的方法 写入 TestHandler 
 
 3 测试主方法(同步)
+
 public static void main(String[] args) {
+
     // 配置代理 服务器地址 方法域名 回调模式(同步)
     ClientProxy<TestHandler> clientProxy = new ClientProxy(
             new ProxyConf(url, "", ProxyConf.Mode.sync));
@@ -22,7 +24,9 @@ public static void main(String[] args) {
 
 
 4 测试主方法(异步)
+
 public static void main(String[] args) {
+
     ClientTest clientTest = new ClientTest();
     // 配置代理 服务器地址 方法域名 回调模式(异步)
     clientProxy = new ClientProxy(
