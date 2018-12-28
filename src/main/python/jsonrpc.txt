@@ -1,0 +1,9 @@
+package=com.yaojun.java_json_rpc.handler
+
+class=TestHandler
+
+m=sendRegisterCode(String mobile)->String
+
+m=appUserRegisterMobile(String mobile,String code)->String
+
+m=updateUser(String token,Dict info)->Dict

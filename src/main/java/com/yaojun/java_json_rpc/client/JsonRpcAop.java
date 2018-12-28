@@ -81,6 +81,8 @@ public class JsonRpcAop implements InvocationHandler {
                 params.add((String) args[i]);
             else if ("Float".equals(methodTypeParms[i]))
                 params.add((float) args[i]);
+            else if ("Int".equals(methodTypeParms[i]))
+                params.add((float) args[i]);
             else if ("Dict".equals(methodTypeParms[i]))
                 params.add((JsonObject) args[i]);
         }
