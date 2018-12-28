@@ -2,8 +2,12 @@ package=com.yaojun.java_json_rpc.handler
 
 class=TestHandler
 
-m=sendRegisterCode(String mobile)->String
+m=sendRegisterCode(String mobile)->Object
 
 m=appUserRegisterMobile(String mobile,String code)->String
 
 m=updateUser(String token,Dict info)->Dict
+
+m=addSos(String token,String name,String phone)->Dict
+
+m=getSos(String token)->Dict

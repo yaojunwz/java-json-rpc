@@ -47,8 +47,8 @@ public class ClientTest implements JsonRpcListener {
     }
 
     @Override
-    public void OnCallBack(long id, Object err, Object result) {
-        System.out.println(id);
+    public void OnCallBack(String methodName, Object err, Object result) {
+        System.out.println(methodName);
         System.out.println(err);
         Gson gs = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
         System.out.println(gs.toJson(result));

@@ -5,5 +5,5 @@ package com.yaojun.java_json_rpc.client;
  * @Date: 2018/12/20 13:50
  */
 public interface JsonRpcListener {
-    void OnCallBack(long id, Object err, Object result);
+    void OnCallBack(String methodName, Object err, Object result);
 }

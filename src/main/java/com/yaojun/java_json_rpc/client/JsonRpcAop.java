@@ -38,7 +38,7 @@ public class JsonRpcAop implements InvocationHandler {
         return response;
     }
 
-    private void asynHttpRequest(String json, JsonRpcListener listener) throws java.io.IOException {
+    private void asynHttpRequest(String methodName, String json, JsonRpcListener listener) throws java.io.IOException {
         RequestBody body = RequestBody.create(MediaType.parse("application/json"), json);
         Request request = new Request.Builder().url(this.config.getUrl()).post(body).build();
         Call call = okHttpClient.newCall(request);
@@ -52,9 +52,9 @@ public class JsonRpcAop implements InvocationHandler {
             public void onResponse(Call call, Response response) throws IOException {
                 JsonObject json = (JsonObject) jsonParser.parse(response.body().string());
                 if (json.has("error"))
-                    listener.OnCallBack(json.get("id").getAsLong(), json.get("error"), json.get("result"));
+                    listener.OnCallBack(methodName, json.get("error"), json.get("result"));
                 else
-                    listener.OnCallBack(json.get("id").getAsLong(), null, json.get("result"));
+                    listener.OnCallBack(methodName, null, json.get("result"));
             }
         });
     }
@@ -82,8 +82,10 @@ public class JsonRpcAop implements InvocationHandler {
             else if ("Float".equals(methodTypeParms[i]))
                 params.add((float) args[i]);
             else if ("Int".equals(methodTypeParms[i]))
-                params.add((float) args[i]);
+                params.add((int) args[i]);
             else if ("Dict".equals(methodTypeParms[i]))
+                params.add((JsonObject) args[i]);
+            else if ("JsonObject".equals(methodTypeParms[i]))
                 params.add((JsonObject) args[i]);
         }
         JsonObject jsonRpcMethod = new JsonObject();
@@ -104,7 +106,7 @@ public class JsonRpcAop implements InvocationHandler {
             Object ret = method.invoke(obj, args);
             return ret;
         } else {
-            asynInvoke(bodyString, args);
+            asynInvoke(method.getName(), bodyString, args);
         }
         return null;
     }
@@ -113,15 +115,15 @@ public class JsonRpcAop implements InvocationHandler {
         Response response = httpRequest(bodyString);
         String res = response.body().string();
         JsonObject json = (JsonObject) jsonParser.parse(res);
-        //System.out.println(res);
+        System.out.println(res);
         if (json.has("error"))
             throw new JsonRpcException(gs.toJson(json.get("error")));
         return json.get("result");
     }
 
 
-    public Object asynInvoke(String bodyString, Object[] args) throws Throwable {
-        asynHttpRequest(bodyString, (JsonRpcListener) args[args.length - 1]);
+    public Object asynInvoke(String methodName, String bodyString, Object[] args) throws Throwable {
+        asynHttpRequest(methodName, bodyString, (JsonRpcListener) args[args.length - 1]);
         return null;
     }
 }

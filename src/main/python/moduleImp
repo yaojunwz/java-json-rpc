@@ -1,0 +1,37 @@
+package com.yaojun.java_json_rpc.handler;
+
+import com.google.gson.JsonObject;
+import com.yaojun.java_json_rpc.client.JsonRpcException;
+
+/**
+ * @Author: yaojun
+ * @Date: 2018/12/18 14:08
+ */
+
+public class TestHandlerImp implements TestHandler {
+    @Override
+    public Object sendRegisterCode(String mobile, Object res) throws JsonRpcException {
+        return (Object) res;
+    }
+
+    @Override
+    public String appUserRegisterMobile(String mobile, String code, Object res) throws JsonRpcException {
+        return (String) res;
+    }
+
+    @Override
+    public JsonObject updateUser(String token, JsonObject info, Object res) throws JsonRpcException {
+        return (JsonObject) res;
+    }
+
+    @Override
+    public JsonObject addSos(String token, String name, String phone, Object res) throws JsonRpcException {
+        return (JsonObject) res;
+    }
+
+    @Override
+    public JsonObject getSos(String token, Object res) throws JsonRpcException {
+        return (JsonObject) res;
+    }
+
+}

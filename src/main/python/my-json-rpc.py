@@ -33,11 +33,10 @@ def functionToString(function):
         function_str=function_str.replace("@pp_list",pp_list)
         pp_list=pp_list.split(",")
         for pp in pp_list:
-            pp.lstrip()
-            pp.rstrip()
+            pp=pp.lstrip()
+            pp=pp.rstrip()
             function=function.replace(pp.split(" ")[1],"")
-            function.lstrip()
-            function.rstrip()
+        function=function.replace(" ","")
         function_str=function_str.replace("@Json_method","\"{0}\"".format(function))
         function_context=function_context+function_str+"\n"
 
