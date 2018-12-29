@@ -5,14 +5,23 @@ import sys
 import re
 
 function_module="\n\
-\t@JsonRpcMethod(Method = @Json_method) \n\
-\tdefault @re_value @function_name(@pp_list, Object res) throws JsonRpcException {\n\
-\t        return (@re_value) res;\n\
-\t}"
+\t@JsonRpcMethod(Method = \"@Json_method\")\n\
+\t@re_value @function_name(@pp_list, Object res) throws JsonRpcException;\n\
+"
+function_imp_module="\n\
+@Override\n\
+public @re_value @function_name(@pp_list, Object res) throws JsonRpcException { return (@re_value)res; }\n\
+"
+
+function_imp_class_module="\n\
+\t@Override\n\
+\tpublic @re_value @function_name(@pp_list, Object res) throws JsonRpcException {return gs.fromJson((JsonObject) res, @re_value.class); }\n\
+"
 
 #m=appUserRegisterMobile(mobile:String, code:String)->String
 
 function_context=""
+function_imp_context=""
 package_name="package_name"
 class_name="class_name"
 function_list = []
@@ -37,9 +46,24 @@ def functionToString(function):
             pp=pp.rstrip()
             function=function.replace(pp.split(" ")[1],"")
         function=function.replace(" ","")
-        function_str=function_str.replace("@Json_method","\"{0}\"".format(function))
+        function_str=function_str.replace("@Json_method",function)
         function_context=function_context+function_str+"\n"
 
+def functionToImpString(function):
+    global function_imp_context
+    group = re.match(r'(.+)\((.+)\)->(.+)',function)
+    if group:
+        function_name=group.group(1)
+        pp_list=group.group(2)
+        re_value=group.group(3)
+        if "Dict"==re_value or "String"==re_value or "Int"==re_value or "Float"==re_value or "Object"==re_value:
+            function_imp_str=function_imp_module
+        else:
+            function_imp_str=function_imp_class_module
+        function_imp_str=function_imp_str.replace("@re_value",re_value)
+        function_imp_str=function_imp_str.replace("@function_name",function_name)
+        function_imp_str=function_imp_str.replace("@pp_list",pp_list)
+        function_imp_context=function_imp_context+function_imp_str+"\n"
 
 def main():
     file_name = "jsonrpc.txt"
@@ -60,16 +84,26 @@ def main():
                 function_list.append(line[len("m="):-1])
         for function in function_list:
             print(functionToString(function))
+            print(functionToImpString(function))
 
     res=""
     with open("module", "r") as f:
         res=f.read()
-
     with open(class_name+".java", "w") as f:
         res=res.replace("@package",package_name)
         res=res.replace("@class",class_name)
         res=res.replace("@m",function_context.replace("Dict","JsonObject"))
         f.write(res)
+    res=""
+    with open("moduleImp", "r") as f:
+        res=f.read()
+    with open(class_name+"Imp.java", "w") as f:
+        res=res.replace("@package",package_name)
+        res=res.replace("@class",class_name)
+        res=res.replace("@Imp",function_imp_context.replace("Dict","JsonObject"))
+        f.write(res)
+
+    
 
 if __name__ == '__main__':
     main()

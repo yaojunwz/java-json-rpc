@@ -4,9 +4,14 @@ import com.google.gson.*;
 import com.yaojun.java_json_rpc.json_rpc.JsonRpcMethod;
 import okhttp3.*;
 
+import java.beans.BeanInfo;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.*;
 
 
@@ -21,6 +26,26 @@ public class JsonRpcAop implements InvocationHandler {
     private OkHttpClient okHttpClient = new OkHttpClient();
     private Gson gs = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static long id = 0;
+
+    public static Map<String, Object> objectToMap(Object obj) throws Exception {
+        if (obj == null)
+            return null;
+
+        Map<String, Object> map = new HashMap<String, Object>();
+
+        BeanInfo beanInfo = Introspector.getBeanInfo(obj.getClass());
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+        for (PropertyDescriptor property : propertyDescriptors) {
+            String key = property.getName();
+            if (key.compareToIgnoreCase("class") == 0) {
+                continue;
+            }
+            Method getter = property.getReadMethod();
+            Object value = getter != null ? getter.invoke(obj) : null;
+            map.put(key, value);
+        }
+        return map;
+    }
 
     private static synchronized long getId() {
         return JsonRpcAop.id++;
@@ -60,7 +85,7 @@ public class JsonRpcAop implements InvocationHandler {
     }
 
 
-    private String JsonRpcString2JsonString(String jsonRpcString, Object[] args) throws Exception {
+    private JsonObject JsonRpcString2JsonString(String jsonRpcString, Object[] args) throws Exception {
         String pattern = "(.*)\\((.*)\\)(.*)";
         Pattern r = Pattern.compile(pattern);
         Matcher m = r.matcher(jsonRpcString);
@@ -87,43 +112,49 @@ public class JsonRpcAop implements InvocationHandler {
                 params.add((JsonObject) args[i]);
             else if ("JsonObject".equals(methodTypeParms[i]))
                 params.add((JsonObject) args[i]);
+            else
+                params.add(gs.toJsonTree(args[i]));
         }
         JsonObject jsonRpcMethod = new JsonObject();
         jsonRpcMethod.addProperty("method", methodName);
         jsonRpcMethod.addProperty("jsonrpc", "2.0");
         jsonRpcMethod.add("params", params);
         jsonRpcMethod.addProperty("id", JsonRpcAop.getId());
-        return jsonRpcMethod.toString();
+        jsonRpcMethod.addProperty("return", methodReturnValue);
+        return jsonRpcMethod;
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         JsonRpcMethod annotation = method.getDeclaredAnnotationsByType(JsonRpcMethod.class)[0];
-        String bodyString = JsonRpcString2JsonString(annotation.Method(), args);
-        System.out.println(bodyString);
+        JsonObject body = JsonRpcString2JsonString(annotation.Method(), args);
+        System.out.println(body);
         if (ProxyConf.Mode.sync == this.config.getMode()) {
-            args[args.length - 1] = syncInvoke(bodyString);
+            args[args.length - 1] = syncInvoke(body);
             Object ret = method.invoke(obj, args);
             return ret;
         } else {
-            asynInvoke(method.getName(), bodyString, args);
+            asynInvoke(method.getName(), body, args);
         }
         return null;
     }
 
-    public Object syncInvoke(String bodyString) throws Throwable {
-        Response response = httpRequest(bodyString);
+    public Object syncInvoke(JsonObject body) throws Throwable {
+        Response response = httpRequest(body.toString());
         String res = response.body().string();
         JsonObject json = (JsonObject) jsonParser.parse(res);
-        System.out.println(res);
-        if (json.has("error"))
-            throw new JsonRpcException(gs.toJson(json.get("error")));
+        if (json.has("error")) {
+            throw new JsonRpcException(gs.toJson(json.get("error")), json.get("error").getAsJsonObject());
+        }
+        if (body.get("return").getAsString().endsWith("Class")) {
+            return json.get("result").getAsJsonObject();
+        }
         return json.get("result");
     }
 
 
-    public Object asynInvoke(String methodName, String bodyString, Object[] args) throws Throwable {
-        asynHttpRequest(methodName, bodyString, (JsonRpcListener) args[args.length - 1]);
+    public Object asynInvoke(String methodName, JsonObject body, Object[] args) throws Throwable {
+        asynHttpRequest(methodName, body.toString(), (JsonRpcListener) args[args.length - 1]);
         return null;
     }
 }

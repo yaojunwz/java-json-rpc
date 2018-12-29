@@ -6,8 +6,8 @@ m=sendRegisterCode(String mobile)->Object
 
 m=appUserRegisterMobile(String mobile,String code)->String
 
-m=updateUser(String token,Dict info)->Dict
+m=updateUser(String token,UserBean info)->UserBean
 
-m=addSos(String token,String name,String phone)->Dict
+m=addSos(String token,String name,String phone)->SosListBean
 
-m=getSos(String token)->Dict
+m=delSos(String token,String phone)->SosListBean
