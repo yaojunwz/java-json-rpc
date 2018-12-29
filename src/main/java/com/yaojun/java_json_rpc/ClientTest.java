@@ -17,7 +17,7 @@ public class ClientTest {
         Gson gs = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
         ClientTest clientTest = new ClientTest();
         try {
-            String url = "http://apiserver.smartgreenai.com/json";
+            String url = "http://127.0.0.1/json";
             UserBean userBean = new UserBean();
             userBean.nickname = "yaojunBean";
             // 配置代理 服务器地址 方法域名 回调模式(同步)
